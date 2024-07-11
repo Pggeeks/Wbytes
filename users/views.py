@@ -4,6 +4,7 @@ from django.views import View
 from django.contrib.auth import authenticate, login
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
+from users.custom_auth import EmailOrUsernameModelBackend
 from users.email import send_forgot_email
 from .forms.user_form import ChangePasswordForm, CustomUserCreationForm, ForgotPasswordForm, LoginForm, ResetPasswordForm
 import re
@@ -62,17 +63,8 @@ class CustomLoginView(View):
         if form.is_valid():
             email_or_username = form.cleaned_data['email_or_username']
             password = form.cleaned_data['password']
-            ## As user is inputing email and username in same field, we are using regex to check
-            ##- is it usernname or email and validating accordingly
-            if re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email_or_username):
-                kwargs = {'email': email_or_username}
-            elif re.match(r'^[\w.@+-]+$', email_or_username):
-                kwargs = {'username': email_or_username}
-            else:
-                messages.error(request, 'Invalid email/username or password')
-                return render(request, self.template_name, {'form': form})
-
-            user = authenticate(request, **kwargs, password=password)
+            ## Also could have set it as AUTHENTICATION_BACKENDS in settings.py
+            user = EmailOrUsernameModelBackend.authenticate(request, email_or_username, password=password)
             if user is not None:
                 login(request, user)
                 return redirect('dashboard')  # Redirect to a dashboard or home page
