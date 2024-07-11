@@ -29,6 +29,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS",cast=list)
 
 
 # Application definition
+BASE_URL=config("BASE_URL")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -51,7 +52,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "whatbytes_assignment.urls"
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -70,6 +70,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "whatbytes_assignment.wsgi.application"
 AUTH_USER_MODEL = 'users.CustomUser'
+## Email Config
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST=config("EMAIL_HOST")
+EMAIL_HOST_USER = config("EMAIL")
+EMAIL_PORT=config("EMAIL_PORT")
+EMAIL_HOST_PASSWORD =config("PASSWORD")
+EMAIL_USE_TLS = True 
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases

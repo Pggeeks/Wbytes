@@ -2,14 +2,25 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.views import View
 from django.contrib.auth import authenticate, login
-from .forms.user_form import ChangePasswordForm, CustomUserCreationForm, LoginForm
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from users.email import send_forgot_email
+from .forms.user_form import ChangePasswordForm, CustomUserCreationForm, ForgotPasswordForm, LoginForm, ResetPasswordForm
 import re
+from django.conf import settings
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import smart_bytes
+from .models import CustomUser
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth import logout
 
 class RegisterView(View):
+    '''
+    Basic Registration view for user, using django built in Authentication :)
+    '''
     form_class = CustomUserCreationForm
     template_name = 'users/signup.html'
 
@@ -34,10 +45,15 @@ class RegisterView(View):
         return render(request, self.template_name, {'form': form})
 
 class CustomLoginView(View):
+    '''
+    Custom Login View for user, using django built in Authentication :)
+    '''
     template_name = 'users/login.html'
     form_class = LoginForm
 
     def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
         form = self.form_class()
         return render(request, self.template_name, {'form': form})
 
@@ -57,7 +73,6 @@ class CustomLoginView(View):
                 return render(request, self.template_name, {'form': form})
 
             user = authenticate(request, **kwargs, password=password)
-            print(user)
             if user is not None:
                 login(request, user)
                 return redirect('dashboard')  # Redirect to a dashboard or home page
@@ -104,3 +119,71 @@ class ChangePasswordView(View):
             messages.success(request, 'Your password was successfully updated.')
             return redirect('dashboard')
         return render(request, self.template_name, {'form': form})
+    
+
+class ForgotPassword(View):
+    '''
+    View to reset password can be accessed by anaonymous user to rest password over mail
+    '''
+    form_class = ChangePasswordForm
+    template_name = 'users/forgot_pass.html'
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+        form = ForgotPasswordForm()
+        return render(request, self.template_name, {'form': form})
+    
+    ## Not Using Django PasswordResetView as to show my understanding and custom is better
+    def post(self, request):
+        form = ForgotPasswordForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            user = CustomUser.objects.get(email=email) ## Get as we already checked if user exsists
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.pk))
+            token = PasswordResetTokenGenerator().make_token(user)
+            link = f"{settings.BASE_URL}reset-password?base={uidb64}&token={token}"
+            send_forgot_email(request,user.username, user.email, link)
+            messages.success(request, 'We have sent you a link to reset your password.')
+            return redirect('login')
+        return render(request, self.template_name, {'form': form})
+    
+ ## Not Using Django PasswordResetView as to show my understanding and custom is better
+class PasswordResetView(View):
+    form_class = ResetPasswordForm
+    template_name = 'users/reset_password.html'
+
+    def get(self, request, *args, **kwargs):
+        uidb64 = request.GET.get('base', None)
+        token = request.GET.get('token', None)
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            user = None
+
+        if user is not None and PasswordResetTokenGenerator().check_token(user, token):
+            form = self.form_class(user=user)
+            return render(request, self.template_name, {'form': form, 'validlink': True})
+        else:
+            return render(request, self.template_name, {'validlink': False})
+
+    def post(self, request, *args, **kwargs):
+        uidb64 = request.GET.get('base', None)
+        token = request.GET.get('token', None)
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            user = None
+
+        if user is not None and PasswordResetTokenGenerator().check_token(user, token):
+            form = self.form_class(data=request.POST, user=user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Your password was reset successfully.')
+                return redirect('login')
+            else:
+                
+                return render(request, self.template_name, {'form': form, 'validlink': True})
+        else:
+            return render(request, self.template_name, {'validlink': False})

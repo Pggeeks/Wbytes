@@ -7,7 +7,7 @@
                 <div class="col-lg-5">
                     <div class="card shadow-lg border-0 rounded-lg mt-0 mb-3">
                         <div class="card-header  justify-content-center" style="background-color: lightblue;">
-                          <h3 class="font-weight-medium my-1 text-center">Sign In</h3>
+                          <h3 class="font-weight-medium my-1 text-center">Login</h3>
                         </div>
                         <div class="card-body">
                             <form method="POST">
@@ -35,8 +35,15 @@
                                 <div class="form-row">
                                     <div class="col-md-10 offset-md-1">
                                         <div class="form-group">
-                                          <label class="small mb-1">Password</label>
-                                          {{ form.password }}
+                                            <label class="small mb-1" for="password">Password</label>
+                                            <div class="input-group">
+                                                {{ form.password }}
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                                        <i class="fa fa-eye" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -51,7 +58,8 @@
                         </div>
                         <div class="card-footer text-center">
                             <div class="small">
-                                <a href="{% url 'signup' %}">Don't have an account yet? Go to signup</a><br>
+                                <a style="color: red;" href="{% url 'forgot_password' %}">Forgot you password? Reset here!</a><br>
+                                <a href="{% url 'signup' %}">Don't have an account yet? Go to signup!</a><br>
                             </div>
                         </div>
                     </div>
@@ -59,4 +67,18 @@
             </div>
         </div>
      </div>
+     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("togglePassword").onclick = function() {
+                var passwordField = document.getElementById("id_password");
+                if (passwordField.type === "password") {
+                    passwordField.type = "text";
+                    console.log("password shown");
+                } else {
+                    console.log("password ");
+                    passwordField.type = "password";
+                }
+            }
+        });
+    </script>
 {% endblock content %}
