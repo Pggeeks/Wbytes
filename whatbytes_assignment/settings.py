@@ -69,7 +69,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "whatbytes_assignment.wsgi.application"
-
+AUTH_USER_MODEL = 'users.CustomUser'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
